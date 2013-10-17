@@ -20,5 +20,5 @@ ADD_EXECUTABLE(twitter_sample sample.cpp)
 
 set_target_properties(twitter_sample PROPERTIES COMPILE_FLAGS "-Wall -I ../include -std=c++11 -stdlib=libc++")
 
-set_target_properties(twitter_sample PROPERTIES LINK_FLAGS "-L ../lib -lplumage -ldl -lc++ -lcurl -lplumage_twitter -lssl -lcrypto")
+set_target_properties(twitter_sample PROPERTIES LINK_FLAGS "-L ../lib -lplumage -ldl -lc++ -lcurl -lssl -lcrypto")
 

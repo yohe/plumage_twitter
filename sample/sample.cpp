@@ -15,11 +15,12 @@ int usage() {
               << "        Option : " << std::endl
               << "          [-s] : Search tweets. param is search string." << std::endl
               << "                 example : tweet -s \"vim script\"" << std::endl
-              << "          [-t] : Tweet. Param is tweet string you want to tweet." << std::endl
+              << "          [-t] : Tweeting. Param is tweet string you want to tweet." << std::endl
               << "                 example : tweet -t \" I like vim." << std::endl
-              << "          [-r] : Retweet. Param is tweet ID you want to tweet." << std::endl
+              << "          [-r] : Retweet a tweet. Param is tweet ID you want to tweet." << std::endl
               << "                 example : tweet -r 12345" << std::endl
-              << "          [-g] : Get the home timeline. This option can specify the one or two parameters." << std::endl
+              << "          [-g] : Get the home timeline. Parameters of this option is optional," << std::endl
+              << "                 and this option can specify one or two parameters." << std::endl
               << "                 First parameter is size you want to get the latest home timeline." << std::endl
               << "                 Second parameter is since_id you want to get the home timeline." << std::endl
               << "                     example : tweet -g 20" << std::endl
@@ -45,6 +46,11 @@ void searchTweet(plumage::PluginInterface* pif, int argc, char const* argv[]) {
     boost::any ret = pif->call("searchTweet", query);
     picojson::value* v = boost::any_cast<picojson::value*>(ret);
     picojson::object obj = v->get<picojson::object>();
+    if(!v->contains("statuses")) {
+        std::cout << "search error." << std::endl;
+        delete v;
+        return;
+    }
     picojson::array statuses = obj["statuses"].get<picojson::array>();
     picojson::array::iterator it;
     for (it = statuses.begin(); it != statuses.end(); it++) {
@@ -66,6 +72,11 @@ void tweet(plumage::PluginInterface* pif, int argc, char const* argv[]) {
 }
 void retweet(plumage::PluginInterface* pif, int argc, char const* argv[]) {
     std::string data = argv[2];
+    if(std::find_if(data.begin(), data.end(), std::ptr_fun(isalpha)) != data.end()) {
+        std::cout << "Tweet id parameter is invalid." << std::endl;
+        return;
+    }
+
     boost::any query(data);
     boost::any ret = pif->call("retweet", query);
     picojson::value* v = boost::any_cast<picojson::value*>(ret);
@@ -75,16 +86,38 @@ void retweet(plumage::PluginInterface* pif, int argc, char const* argv[]) {
     delete v;
 }
 void getHomeTimeline(plumage::PluginInterface* pif, int argc, char const* argv[]) {
-    std::string data = argv[2];
+    std::string data = "";
+    if(argc == 2) {
+        data = "20";
+    } else {
+        data = argv[2];
+    }
+
+    if(std::find_if(data.begin(), data.end(), std::ptr_fun(isalpha)) != data.end()) {
+        std::cout << "Count parameter is invalid." << std::endl;
+        return;
+    }
+
     boost::any ret;
-    if(argc == 3) {
+    if(argc <= 3) {
         boost::any query(data);
         ret = pif->call("getHomeTimeline", query);
     } else if(argc == 4) {
+        std::string chk = argv[3];
+        if(std::find_if(chk.begin(), chk.end(), std::ptr_fun(isalpha)) == chk.end()) {
+            std::cout << "Since_id parameter is invalid." << std::endl;
+            return;
+        }
+
         boost::any query = std::make_tuple(data, std::string(argv[3]));
         ret = pif->call("getHomeTimeline", query);
     }
     picojson::value* v = boost::any_cast<picojson::value*>(ret);
+    if(!v->is<picojson::array>()) {
+        std::cout << "Home timeline get error." << std::endl;
+        delete v;
+        return;
+    }
     picojson::array arr = v->get<picojson::array>();
     picojson::array::iterator it;
     for (it = arr.begin(); it != arr.end(); it++) {
@@ -96,18 +129,22 @@ void getHomeTimeline(plumage::PluginInterface* pif, int argc, char const* argv[]
 }
 void deleteTweet(plumage::PluginInterface* pif, int argc, char const* argv[]) {
     std::string data = argv[2];
+    if(std::find_if(data.begin(), data.end(), std::ptr_fun(isalpha)) != data.end()) {
+        std::cout << "Tweet id parameter is invalid." << std::endl;
+        return;
+    }
     boost::any query(data);
     boost::any ret = pif->call("deleteTweet", query);
     picojson::value* v = boost::any_cast<picojson::value*>(ret);
     if(!v->contains(std::string("text"))) {
-        std::cout << "retweet error." << std::endl;
+        std::cout << "delete error." << std::endl;
     }
     delete v;
 }
 
 int main(int argc, char const* argv[])
 {
-    if(argc < 3) {
+    if(argc < 2) {
         return usage();
     }
 
@@ -157,6 +194,11 @@ int main(int argc, char const* argv[])
         pif->call("authenticate", callback);
 
         std::string option = argv[1];
+        if(option != "-g") {
+            if(argc < 3) {
+                return usage();
+            }
+        }
         if(option == "-s") {
             searchTweet(pif, argc, argv);
         } else if (option == "-t") {
