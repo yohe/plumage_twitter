@@ -26,7 +26,9 @@ int usage() {
               << "                     example : tweet -g 20" << std::endl
               << "                     example : tweet -g 20 1500" << std::endl
               << "          [-d] : Delete a tweet. Param is tweet ID you want to delete." << std::endl
-              << "                 example : tweet -d 12345" << std::endl;
+              << "                 example : tweet -d 12345" << std::endl
+              << "          [-S] : Display the realtime tweet. Param is nothing." << std::endl
+              << "                 example : tweet -S" << std::endl;
     return 1;
 }
 
@@ -40,6 +42,28 @@ std::string oauth_verifier_input(std::string url) {
     return PIN;
 }
 
+size_t responseListner(char* data, size_t size) {
+    std::stringstream ss;
+    ss.write(data, size);
+
+    picojson::value v;
+    picojson::parse(v, ss);
+
+    picojson::object obj = v.get<picojson::object>();
+    if(v.contains("text")) {
+        if(obj["lang"].to_str() == "ja") {
+            picojson::object userObj = obj["user"].get<picojson::object>();
+            std::cout << obj["id_str"].to_str() << " : " << userObj["name"].to_str() << " : " << obj["text"].to_str() << std::endl;
+        }
+    }
+    return size;
+}
+
+void streamingSample(plumage::PluginInterface* pif, int argc, char const* argv[]) {
+    std::function<size_t(char*,size_t)> f = responseListner;
+    boost::any query(&f);
+    pif->call("streamingSample", query);
+}
 void searchTweet(plumage::PluginInterface* pif, int argc, char const* argv[]) {
     std::string data = argv[2];
     boost::any query(data);
@@ -183,8 +207,8 @@ int main(int argc, char const* argv[])
     pif->start();
 
     try {
-        boost::any param(std::make_tuple("6DZhJSRRKKu2L8w4YStZIw",
-                                         "LWnUs1L2CLBvTlsDIRo0yr0IfPbLclaNH6z0VudeM",
+        boost::any param(std::make_tuple("consumer-key",
+                                         "consumer-secret",
                                          "",
                                          ""));
         pif->call("setOAuthParam", param);
@@ -194,7 +218,7 @@ int main(int argc, char const* argv[])
         pif->call("authenticate", callback);
 
         std::string option = argv[1];
-        if(option != "-g") {
+        if(option != "-g" && option != "-S") {
             if(argc < 3) {
                 return usage();
             }
@@ -209,6 +233,8 @@ int main(int argc, char const* argv[])
             getHomeTimeline(pif, argc, argv);
         } else if (option == "-d") {
             deleteTweet(pif, argc, argv);
+        } else if (option == "-S") {
+            streamingSample(pif, argc, argv);
         }
 
     } catch (std::exception& e) {

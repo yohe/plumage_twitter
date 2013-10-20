@@ -26,6 +26,9 @@ void PlumageTwitter::init() {
     methodList_["retweet"] = &PlumageTwitter::retweet;
     methodList_["deleteTweet"] = &PlumageTwitter::deleteTweet;
     methodList_["getHomeTimeline"] = &PlumageTwitter::getHomeTimeline;
+
+    methodList_["streamingSample"] = &PlumageTwitter::streamingSample;
+    methodList_["streamingFilter"] = &PlumageTwitter::streamingFilter;
 }
 
 bool PlumageTwitter::doStart() {
@@ -220,5 +223,35 @@ boost::any PlumageTwitter::authenticate(boost::any& parameter) {
     std::map<std::string, std::string> accessInfo = boost::any_cast<std::map<std::string, std::string>>(ret);
     ofs << accessInfo["oauth_token"] << " " << accessInfo["oauth_token_secret"];
 
+    return nullptr;
+}
+
+boost::any PlumageTwitter::streamingSample(boost::any& parameter) {
+    if(oauthHandle_ == nullptr) {
+        throw std::logic_error("PlumageTwitter : OAuth error.");
+    }
+
+    std::stringstream ss;
+    std::function<size_t(char*, size_t)>* f = boost::any_cast<std::function<size_t(char*,size_t)>*>(parameter);
+
+    std::string url = "https://stream.twitter.com/1.1/statuses/sample.json";
+    boost::any param(std::make_tuple(handle_, oauthHandle_, url.c_str(), "", f));
+    webapi_->call("getOnOAuth", param);
+    //boost::any searchResult((std::istream*)&ss);
+    //return std::move(webapi_->call("parseJsonData", searchResult));
+    return nullptr;
+}
+boost::any PlumageTwitter::streamingFilter(boost::any& parameter) {
+    if(oauthHandle_ == nullptr) {
+        throw std::logic_error("PlumageTwitter : OAuth error.");
+    }
+
+    std::stringstream ss;
+    std::string id = boost::any_cast<std::string>(parameter);
+    std::string url = "https://stream.twitter.com/1.1/statuses/sample.json";
+    boost::any param(std::make_tuple(handle_, oauthHandle_, url.c_str(), "", (std::ostream*)&std::cout));
+    webapi_->call("getOnOAuth", param);
+    //boost::any searchResult((std::istream*)&ss);
+    //return std::move(webapi_->call("parseJsonData", searchResult));
     return nullptr;
 }

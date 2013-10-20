@@ -51,6 +51,7 @@ public:
     virtual bool isCallable(const std::string& methodName) const;
 
 protected:
+    // REST API
     boost::any searchTweet(boost::any& parameter);
     boost::any tweet(boost::any& parameter);
     boost::any retweet(boost::any& parameter);
@@ -58,6 +59,10 @@ protected:
     boost::any setOAuthParam(boost::any& parameter);
     boost::any authenticate(boost::any& parameter);
     boost::any getHomeTimeline(boost::any& parameter);
+
+    // Streaming API
+    boost::any streamingSample(boost::any& parameter);
+    boost::any streamingFilter(boost::any& parameter);
 
 private:
     virtual boost::any doCall(std::string methodName, boost::any& paramter) throw (std::exception);
